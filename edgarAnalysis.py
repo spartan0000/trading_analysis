@@ -125,6 +125,11 @@ for _, row in df.iterrows():
         result['is_director'] = row['is_director']
         result['is_ten_pct_owner'] = row['is_ten_pct_owner']
         result['company'] = row['company']
+        stake_before = row['Remaining'] - row['Shares']
+        result['stake_before'] = stake_before
+        result['is_first_purchase'] = stake_before == 0
+        result['pct_added'] = row['Shares'] / stake_before if stake_before > 0 else None
+        result['purchase_value'] = row['Shares'] * row['Price']
         
 
         pd.DataFrame([result]).to_csv(
