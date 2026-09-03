@@ -130,7 +130,7 @@ for _, row in df.iterrows():
         result['is_first_purchase'] = stake_before == 0
         result['pct_added'] = row['Shares'] / stake_before if stake_before > 0 else None
         result['purchase_value'] = row['Shares'] * row['Price']
-        
+        result['filing_lag'] = (pd.to_datetime(row['filing_date']) - pd.to_datetime(row['Date'])).days
 
         pd.DataFrame([result]).to_csv(
             'returns_analysis.csv',
@@ -148,3 +148,18 @@ for _, row in df.iterrows():
     if n % 100 == 0:
         print(f"{n} total rows evaluated | {results} results written | {dict(error_counts)}")
 
+#clean the data up
+
+df = pd.read_csv('returns_analysis.csv')
+
+df_filtered = df[
+    (df['purchase_value'] > 1000) &
+    (df['Shares'] > 10) &
+    (df['pct_added'] > 0.001) &
+    (df['TransactionType'] == 'Purchase') &
+    (df['EquitySwap'] == False) &
+    (df['form'] == 4) &
+    (df['filing_lag'] <= 5)
+]
+
+df_filtered.to_csv('returns_analysis_filtered.csv', index = False)
