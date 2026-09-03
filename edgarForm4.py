@@ -12,7 +12,7 @@ from edgar import Company, get_filings
 
 def get_edgar_filings(): #get the filings we need to then parse and pull the form4 data
 
-    filings = get_filings(form = "4", filing_date = "2025-01-01:2026-06-30") #adjust the date 
+    filings = get_filings(form = "4", filing_date = "2023-01-01:2026-06-30") #adjust the date 
 
     tickers = pd.read_csv('tickers.csv') 
     tickerList = [tickers['Symbol'].iloc[i] for i in range(len(tickers))]#list of sp500 tickers
