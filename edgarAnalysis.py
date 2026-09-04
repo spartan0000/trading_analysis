@@ -84,7 +84,7 @@ def calculate_returns(ticker: str, purchase_date: str, days=90, min_trading_days
         'stock_return': float(stock_return),
         'spy_return': float(spy_return),
         'alpha': float(alpha),
-        'beat_market': alpha > 0
+        'beat_market': int(alpha > 0)
     }, 'ok'
 
 
@@ -121,13 +121,16 @@ for _, row in df.iterrows():
         result['form'] = row['form']
         result['EquitySwap'] = row['EquitySwap']
         result['TransactionType'] = row['TransactionType']
-        result['is_officer'] = row['is_officer']
-        result['is_director'] = row['is_director']
-        result['is_ten_pct_owner'] = row['is_ten_pct_owner']
+        result['is_officer'] = int(row['is_officer'])
+        result['is_director'] = int(row['is_director'])
+        title = str(row['officer_title']).lower() if pd.notna(row['officer_title']) else ''
+        result['is_ceo'] = int('ceo' in title or 'chief executive' in title)
+        result['is_non_ceo_officer'] = int(result['is_officer'] == 1 and result['is_ceo'] == 0)
+        result['is_ten_pct_owner'] = int(row['is_ten_pct_owner'])
         result['company'] = row['company']
         stake_before = row['Remaining'] - row['Shares']
         result['stake_before'] = stake_before
-        result['is_first_purchase'] = stake_before == 0
+        result['is_first_purchase'] = int(stake_before == 0)
         result['pct_added'] = row['Shares'] / stake_before if stake_before > 0 else None
         result['purchase_value'] = row['Shares'] * row['Price']
         result['filing_lag'] = (pd.to_datetime(row['filing_date']) - pd.to_datetime(row['Date'])).days
