@@ -4,7 +4,7 @@ import time
 import os
 
 from edgar import set_identity
-set_identity("david lee absurdprofessor@gmail.com")
+set_identity("david l absurdprofessor@gmail.com")
 
 from edgar import Company, get_filings
 
@@ -14,7 +14,7 @@ def get_edgar_filings(): #get the filings we need to then parse and pull the for
 
     filings = get_filings(form = "4", filing_date = "2023-01-01:2026-06-30") #adjust the date 
 
-    tickers = pd.read_csv('tickers.csv') 
+    tickers = pd.read_csv('data/tickers.csv') 
     tickerList = [tickers['Symbol'].iloc[i] for i in range(len(tickers))]#list of sp500 tickers
 
     sp500Filings = filings.filter(ticker = tickerList)
@@ -28,8 +28,8 @@ def get_form4(filings_list):
     n = 0
     errors = 0
     p = 0
-    if os.path.exists("insider_purchases_2025.csv"):
-        os.remove("insider_purchases_2025.csv")
+    if os.path.exists("data/insider_purchases_2025.csv"):
+        os.remove("data/insider_purchases_2025.csv")
         
     for f in filings_list:
         n += 1
@@ -53,9 +53,9 @@ def get_form4(filings_list):
                 
                 
                 purchases.to_csv(
-                    "insider_purchases_2025.csv",
+                    "data/insider_purchases_2025.csv",
                     mode = 'a',
-                    header = not os.path.exists("insider_purchases_2025.csv"),
+                    header = not os.path.exists("data/insider_purchases_2025.csv"),
                     index = False)
                 p += 1
                 

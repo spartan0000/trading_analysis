@@ -4,9 +4,8 @@ import pandas as pd
 import os
 from collections import Counter
 
-
 #get and cache spy prices
-spy_cache = "spy_cache.parquet"
+spy_cache = "data/spy_cache.parquet"
 
 if os.path.exists(spy_cache):
     spy_prices = pd.read_parquet(spy_cache)
@@ -20,7 +19,7 @@ else:
 
 
 #cached prices for the entire sp500
-all_prices = pd.read_parquet('sp500_prices.parquet')
+all_prices = pd.read_parquet('data/sp500_prices.parquet')
 
 
 
@@ -90,15 +89,15 @@ def calculate_returns(ticker: str, purchase_date: str, days=90, min_trading_days
 
 
 
-if os.path.exists("returns_analysis.csv"):
-    os.remove("returns_analysis.csv")
+if os.path.exists("data/returns_analysis.csv"):
+    os.remove("data/returns_analysis.csv")
 
 error_counts = Counter()
 
 n = 0
 results = 0
 
-df = pd.read_csv('insider_purchases_2025.csv')
+df = pd.read_csv('data/insider_purchases_2025.csv')
 df['Date'] = df['Date'].str.extract(r'(\d{4}-\d{2}-\d{2})')[0] #weird footnote in the date messing things up - extract just date using regex
 
 for _, row in df.iterrows():
@@ -136,9 +135,9 @@ for _, row in df.iterrows():
         result['filing_lag'] = (pd.to_datetime(row['filing_date']) - pd.to_datetime(row['Date'])).days
 
         pd.DataFrame([result]).to_csv(
-            'returns_analysis.csv',
+            'data/returns_analysis.csv',
             mode = 'a',
-            header = not os.path.exists('returns_analysis.csv'),
+            header = not os.path.exists('data/returns_analysis.csv'),
             index = False
         )
         results += 1
@@ -153,7 +152,7 @@ for _, row in df.iterrows():
 
 #clean the data up
 
-df = pd.read_csv('returns_analysis.csv')
+df = pd.read_csv('data/returns_analysis.csv')
 
 df_filtered = df[
     (df['purchase_value'] > 1000) &
@@ -165,4 +164,4 @@ df_filtered = df[
     (df['filing_lag'] <= 5)
 ]
 
-df_filtered.to_csv('returns_analysis_filtered.csv', index = False)
+df_filtered.to_csv('data/returns_analysis_filtered.csv', index = False)
