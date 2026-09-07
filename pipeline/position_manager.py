@@ -49,7 +49,7 @@ def execute_trade(signal):
     
     print(f"Executed: {signal['ticker']} ${position_size:.0f}")
 
-def check_close_positions(hold_days=60):
+def check_close_positions(hold_days=90):
     positions = client.get_all_positions()
     
     # Load trade log to get entry dates
