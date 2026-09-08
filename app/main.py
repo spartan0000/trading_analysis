@@ -71,10 +71,13 @@ async def get_info():
 @app.get("/logs/signals")
 async def get_signals():
     signals = []
-    with open(PATH / "logs" / "signals_log.jsonl") as f:
-        for line in f:
-            signals.append(json.loads(line))
-        return signals
+    try:
+        with open(PATH / "logs" / "signals_log.jsonl") as f:
+            for line in f:
+                signals.append(json.loads(line))
+    except FileNotFoundError:
+        return []
+    return signals
 
 @app.get("/logs/positions")
 async def get_positions():

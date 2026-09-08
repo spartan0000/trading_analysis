@@ -1,8 +1,6 @@
 import os
 from alpaca.trading.client import TradingClient
 
-from pipeline.regime import get_current_regime
-
 MIN_VALUE = 10000
 MAX_VALUE = 100000000
 MAX_LAG = 5
@@ -28,14 +26,13 @@ def already_holding():
     positions = client.get_all_positions()
     return {p.symbol for p in positions}
 
-def passes_criteria(signal):
+def passes_criteria(signal, regime, existing_positions):
     checks = [
-        
         # Add regime check — only trade in bull or neutral_bull
-        get_current_regime() in ['bull', 'neutral_bull'],
+        regime in ['bull', 'neutral_bull'],
         # Don't add to existing position
-        signal['ticker'] not in already_holding(),
+        signal['ticker'] not in existing_positions,
 
         signal['DirectIndirect'] == 'I',
     ]
-    return all(checks) 
+    return all(checks)
