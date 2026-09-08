@@ -1,21 +1,37 @@
 import os
 from alpaca.trading.client import TradingClient
 
-MIN_VALUE = 10000
-MAX_VALUE = 100000000
-MAX_LAG = 5
-MIN_SHARES = 10
+MIN_ANALYSIS_VALUE = 10000
+MAX_ANALYSIS_VALUE = 100000000
+MAX_ANALYSIS_LAG = 5
+MIN_ANALYSIS_SHARES = 10
 
-def apply_filters(df, min_value=MIN_VALUE, max_value=MAX_VALUE, max_lag=MAX_LAG, min_shares=MIN_SHARES):
+
+
+# Used by analysis / FastAPI — slice historical data for research
+def apply_analysis_filters(df, min_value=MIN_ANALYSIS_VALUE, max_value=MAX_ANALYSIS_VALUE, max_lag=MAX_ANALYSIS_LAG):
     return df[
         (df['purchase_value'] >= min_value) &
         (df['purchase_value'] < max_value) &
         (df['filing_lag'] <= max_lag) &
         (df['TransactionType'] == 'Purchase') &
         (df['form'] == 4) &
-        (df['EquitySwap'] == False) &
-        (df['Shares'] > min_shares)
+        (df['EquitySwap'] == False)
     ].copy()
+
+# Used by trading pipeline — evaluate a single new signal
+def passes_trade_criteria(signal, regime, existing_positions):
+    return all([
+        signal['purchase_value'] >= 500000,
+        signal['purchase_value'] < 1000000,
+        signal['filing_lag'] <= 5,
+        signal['TransactionType'] == 'Purchase',
+        signal['form'] == 4,
+        not signal['EquitySwap'],
+        regime in ['bull', 'neutral_bull'],
+        signal['ticker'] not in existing_positions,
+        len(existing_positions) < 10
+    ])
 
 def already_holding():
     client = TradingClient(

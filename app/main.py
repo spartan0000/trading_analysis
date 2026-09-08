@@ -11,7 +11,7 @@ from dotenv import load_dotenv
 
 from alpaca.trading.client import TradingClient
 
-from pipeline.filters import apply_filters, MAX_VALUE, MIN_VALUE, MAX_LAG, MIN_SHARES
+from pipeline.filters import apply_analysis_filters, MAX_ANALYSIS_VALUE, MIN_ANALYSIS_VALUE, MAX_ANALYSIS_LAG, MIN_ANALYSIS_SHARES
 
 load_dotenv()
 
@@ -40,16 +40,16 @@ async def get_data():
 
 @app.get("/data/filtered")
 async def get_filtered(
-    min_value: float = MIN_VALUE,
-    max_value: float = MAX_VALUE,
-    max_lag: int = MAX_LAG,
-    min_shares: int = MIN_SHARES,
+    min_value: float = MIN_ANALYSIS_VALUE,
+    max_value: float = MAX_ANALYSIS_VALUE,
+    max_lag: int = MAX_ANALYSIS_LAG,
+    min_shares: int = MIN_ANALYSIS_SHARES,
 ):
     df = pd.read_csv(FULL_DATA_PATH)
 
-    apply_filters(df)
+    apply_analysis_filters(df)
 
-    df_filtered = apply_filters(df, min_value, max_value, max_lag, min_shares)
+    df_filtered = apply_analysis_filters(df, min_value, max_value, max_lag)
     df_filtered = df_filtered.replace({np.nan: None})
     return df_filtered.to_dict(orient="records")
 
