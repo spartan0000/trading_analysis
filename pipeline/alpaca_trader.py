@@ -11,6 +11,7 @@ from pathlib import Path
 load_dotenv()
 
 PATH = Path(__file__).parent.parent
+LOG_DIR = Path(os.environ.get("LOG_DIR", PATH / "logs"))
 
 def get_client():
     return TradingClient(
@@ -58,5 +59,6 @@ def execute_trade(signal, regime):
 
 def log_signal(entry):
     """Append signal to JSONL log"""
-    with open(PATH / 'logs' / 'signals_log.jsonl', 'a') as f:
+    LOG_DIR.mkdir(parents=True, exist_ok=True)
+    with open(LOG_DIR / 'signals_log.jsonl', 'a') as f:
         f.write(json.dumps(entry) + '\n')

@@ -8,9 +8,11 @@ from dotenv import load_dotenv
 load_dotenv()
 
 PATH = Path(__file__).parent.parent
+LOG_DIR = Path(os.environ.get("LOG_DIR", PATH / "logs"))
+LOG_DIR.mkdir(parents=True, exist_ok=True)
 
 logging.basicConfig(
-    filename=str(PATH / 'logs' / 'daily.log'),
+    filename=str(LOG_DIR / 'daily.log'),
     level=logging.INFO,
     format='%(asctime)s %(levelname)s %(message)s'
 )

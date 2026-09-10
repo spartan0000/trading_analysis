@@ -1,15 +1,9 @@
-from alpaca.trading.client import TradingClient
-from alpaca.trading.requests import MarketOrderRequest, ClosePositionRequest
-from alpaca.trading.enums import OrderSide, TimeInForce
-import json
 import os
-from datetime import datetime
+from datetime import datetime, timedelta, timezone
 
-from pipeline.regime import get_current_regime
-from pathlib import Path
-
-
-PATH = Path(__file__).parent.parent
+from alpaca.trading.client import TradingClient
+from alpaca.trading.requests import GetOrdersRequest
+from alpaca.trading.enums import OrderSide, QueryOrderStatus
 
 client = TradingClient(
     api_key = os.getenv("ALPACA_API_KEY"),
@@ -17,66 +11,42 @@ client = TradingClient(
     paper = True
 )
 
-def execute_trade(signal):
-    account = client.get_account()
-    portfolio_value = float(account.portfolio_value)
-    position_size = portfolio_value * 0.02
-
-    order = MarketOrderRequest(
-        symbol=signal['ticker'],
-        notional=round(position_size, 2),
+def get_entry_dates(lookback_days):
+    """Map each symbol to the fill time of its most recent buy, from Alpaca's
+    order history. The strategy never adds to an open position, so the latest
+    filled buy is that position's entry."""
+    orders = client.get_orders(filter=GetOrdersRequest(
+        status=QueryOrderStatus.CLOSED,
         side=OrderSide.BUY,
-        time_in_force=TimeInForce.DAY
-    )
-    
-    result = client.submit_order(order)
-    
-    # Log the signal details for later analysis
-    log_entry = {
-        'ticker': signal['ticker'],
-        'entry_date': datetime.now().isoformat(),
-        'order_id': str(result.id),
-        'position_size': position_size,
-        'insider_name': signal['insider_name'],
-        'purchase_value': signal['purchase_value'],
-        'pct_added': signal['pct_added'],
-        'regime': get_current_regime()
-    }
-    
-    # Append to log file
-    with open(PATH / 'logs' / 'trade_log.json', 'a') as f:
-        f.write(json.dumps(log_entry) + '\n')
-    
-    print(f"Executed: {signal['ticker']} ${position_size:.0f}")
+        after=datetime.now(timezone.utc) - timedelta(days=lookback_days),
+        limit=500,
+    ))
+    entry_dates = {}
+    for o in sorted(orders, key=lambda o: o.submitted_at):
+        if o.filled_at is not None:
+            entry_dates[o.symbol] = o.filled_at  # sorted ascending → last write is most recent
+    return entry_dates
 
 def check_close_positions(hold_days=90):
     positions = client.get_all_positions()
-    
-    # Load trade log to get entry dates
-    trade_log = {}
-    try:
-        with open(PATH / 'logs' / 'trade_log.json', 'r') as f:
-            for line in f:
-                entry = json.loads(line)
-                trade_log[entry['ticker']] = entry
-    except FileNotFoundError:
-        return
-    
+    entry_dates = get_entry_dates(lookback_days=hold_days * 2)
+
     for position in positions:
         ticker = position.symbol
-        if ticker not in trade_log:
+        entry_date = entry_dates.get(ticker)
+        if entry_date is None:
+            print(f"No buy order found for {ticker} in history — skipping")
             continue
-            
-        entry_date = datetime.fromisoformat(trade_log[ticker]['entry_date'])
-        days_held = (datetime.now() - entry_date).days
+
+        days_held = (datetime.now(timezone.utc) - entry_date).days
         current_pl = float(position.unrealized_plpc)
-        
+
         should_close = (
             days_held >= hold_days or          # time stop
             current_pl >= 0.15 or              # take profit at 15%
             current_pl <= -0.10                # stop loss at 10%
         )
-        
+
         if should_close:
             client.close_position(ticker)
             print(f"Closed {ticker}: {days_held} days, {current_pl:.1%} P&L")
