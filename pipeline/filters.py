@@ -41,14 +41,3 @@ def already_holding():
     )
     positions = client.get_all_positions()
     return {p.symbol for p in positions}
-
-def passes_criteria(signal, regime, existing_positions):
-    checks = [
-        # Add regime check — only trade in bull or neutral_bull
-        regime in ['bull', 'neutral_bull'],
-        # Don't add to existing position
-        signal['ticker'] not in existing_positions,
-
-        signal['DirectIndirect'] == 'I',
-    ]
-    return all(checks)

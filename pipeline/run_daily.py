@@ -19,14 +19,14 @@ logging.basicConfig(
 
 # Import from all other modules
 from pipeline.fetch_filings import get_new_filings
-from pipeline.filters import apply_filters, passes_criteria, already_holding
+from pipeline.filters import passes_trade_criteria, already_holding
 from pipeline.regime import get_current_regime
 from pipeline.alpaca_trader import execute_trade
 from pipeline.position_manager import check_close_positions
 
 def run():
     logging.info("=== Daily pipeline starting ===")
-    
+
     try:
         # 1. Close any positions due first
         # Do this before buying so freed capital is available
@@ -38,25 +38,21 @@ def run():
         logging.info(f"Current regime: {regime}")
 
         # 3. Fetch new filings from EDGAR
-        filings = get_new_filings()
-        logging.info(f"New filings fetched: {len(filings)}")
-
-        # 4. Apply primary filter stack
-        signals = apply_filters(filings)
-        logging.info(f"Signals after filter: {len(signals)}")
+        signals = get_new_filings()
+        logging.info(f"New filings fetched: {len(signals)}")
 
         if len(signals) == 0:
             logging.info("No signals today — done")
             return
 
-        # 5. Get existing positions once
+        # 4. Get existing positions once
         existing_positions = already_holding()
         logging.info(f"Existing positions: {existing_positions}")
 
-        # 6. Evaluate each signal and execute if criteria met
+        # 5. Evaluate each signal against the trade filter stack and execute if it passes
         executed = 0
         for _, signal in signals.iterrows():
-            if passes_criteria(signal, regime, existing_positions):
+            if passes_trade_criteria(signal, regime, existing_positions):
                 result = execute_trade(signal, regime)
                 if result:
                     existing_positions.add(signal['ticker'])

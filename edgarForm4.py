@@ -4,7 +4,7 @@ import time
 import os
 
 from edgar import set_identity
-set_identity("david l absurdprofessor@gmail.com")
+set_identity("david l david.lee3@bcm.edu")
 
 from edgar import Company, get_filings
 
