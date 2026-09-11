@@ -1,6 +1,8 @@
 import os
 from alpaca.trading.client import TradingClient
 
+from pipeline.exceptions import PositionCheckError
+
 MIN_ANALYSIS_VALUE = 10000
 MAX_ANALYSIS_VALUE = 100000000
 MAX_ANALYSIS_LAG = 5
@@ -29,15 +31,20 @@ def passes_trade_criteria(signal, regime, existing_positions):
         signal['form'] == 4,
         not signal['EquitySwap'],
         regime in ['bull', 'neutral_bull'],
+        #decide if we want to add direct/indirect trade filter here
+        #signal['DirectIndirect'] == 'I'
         signal['ticker'] not in existing_positions,
         len(existing_positions) < 10
     ])
 
 def already_holding():
-    client = TradingClient(
-        api_key = os.getenv("ALPACA_API_KEY"),
-        secret_key = os.getenv("ALPACA_SECRET_KEY"),
-        paper = True
-    )
-    positions = client.get_all_positions()
-    return {p.symbol for p in positions}
+    try:
+        client = TradingClient(
+            api_key = os.getenv("ALPACA_API_KEY"),
+            secret_key = os.getenv("ALPACA_SECRET_KEY"),
+            paper = True
+        )
+        positions = client.get_all_positions()
+        return {p.symbol for p in positions}
+    except Exception as e:
+        raise PositionCheckError(f"Failed to retrieve current positions: {e}") from e

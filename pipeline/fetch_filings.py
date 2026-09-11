@@ -3,6 +3,7 @@ from datetime import datetime, timedelta
 from edgar import get_filings
 import logging
 from pathlib import Path
+from pipeline.exceptions import FilingFetchError
 from pipeline.regime import get_current_regime
 
 PATH = Path(__file__).parent.parent
@@ -49,8 +50,7 @@ def get_new_filings():
                 purchases['ticker'] = form4.issuer.ticker
                 purchases['company'] = form4.issuer.name
                 purchases['filing_date'] = f.filing_date
-                purchases['form'] = f.form_type
-                
+
                 all_purchases.append(purchases)
                 
             except Exception as e:
@@ -72,7 +72,8 @@ def get_new_filings():
         
     except Exception as e:
         logging.error(f"Filing fetch failed: {e}")
-        return pd.DataFrame()
+        raise FilingFetchError(f"EDGAR API failed to return filings: {e}") from e
+        #return pd.DataFrame()
 
 def get_last_business_day():
     """Returns yesterday, or Friday if today is Monday"""
@@ -89,6 +90,11 @@ def add_derived_columns(df):
     df['filing_date'] = pd.to_datetime(df['filing_date'])
     df['Date'] = pd.to_datetime(df['Date'])
     df['filing_lag'] = (df['filing_date'] - df['Date']).dt.days
+
+    # form4.common_stock_purchases yields 'form' as a string ('4'); the filter
+    # stack (passes_trade_criteria / apply_analysis_filters) compares it to the
+    # int 4, so normalize here rather than leaving it to silently never match.
+    df['form'] = df['form'].astype(int)
     
     # Purchase value
     if 'purchase_value' not in df.columns:

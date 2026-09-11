@@ -7,6 +7,7 @@ from alpaca.trading.client import TradingClient
 from alpaca.trading.requests import MarketOrderRequest
 from alpaca.trading.enums import OrderSide, TimeInForce
 from pathlib import Path
+from pipeline.exceptions import TradeExecutionError
 
 load_dotenv()
 
@@ -55,6 +56,7 @@ def execute_trade(signal, regime):
         
     except Exception as e:
         logging.error(f"Order failed {signal['ticker']}: {e}")
+        raise TradeExecutionError(f"Failed to execute trade for {signal['ticker']}: {e}") from e
         return None
 
 def log_signal(entry):

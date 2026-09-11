@@ -4,6 +4,7 @@ from datetime import datetime, timedelta, timezone
 from alpaca.trading.client import TradingClient
 from alpaca.trading.requests import GetOrdersRequest
 from alpaca.trading.enums import OrderSide, QueryOrderStatus
+from pipeline.exceptions import PositionManagerError
 
 client = TradingClient(
     api_key = os.getenv("ALPACA_API_KEY"),
@@ -28,25 +29,32 @@ def get_entry_dates(lookback_days):
     return entry_dates
 
 def check_close_positions(hold_days=90):
-    positions = client.get_all_positions()
-    entry_dates = get_entry_dates(lookback_days=hold_days * 2)
+    try:
+        positions = client.get_all_positions()
+        entry_dates = get_entry_dates(lookback_days=hold_days * 2)
 
-    for position in positions:
-        ticker = position.symbol
-        entry_date = entry_dates.get(ticker)
-        if entry_date is None:
-            print(f"No buy order found for {ticker} in history — skipping")
-            continue
+        closed = []
+        for position in positions:
+            ticker = position.symbol
+            entry_date = entry_dates.get(ticker)
+            if entry_date is None:
+                print(f"No buy order found for {ticker} in history — skipping")
+                continue
 
-        days_held = (datetime.now(timezone.utc) - entry_date).days
-        current_pl = float(position.unrealized_plpc)
+            days_held = (datetime.now(timezone.utc) - entry_date).days
+            current_pl = float(position.unrealized_plpc)
 
-        should_close = (
-            days_held >= hold_days or          # time stop
-            current_pl >= 0.15 or              # take profit at 15%
-            current_pl <= -0.10                # stop loss at 10%
-        )
+            should_close = (
+                days_held >= hold_days or          # time stop
+                current_pl >= 0.15 or              # take profit at 15%
+                current_pl <= -0.10                # stop loss at 10%
+            )
 
-        if should_close:
-            client.close_position(ticker)
-            print(f"Closed {ticker}: {days_held} days, {current_pl:.1%} P&L")
+            if should_close:
+                client.close_position(ticker)
+                print(f"Closed {ticker}: {days_held} days, {current_pl:.1%} P&L")
+                closed.append(ticker)
+
+        return closed
+    except Exception as e:
+        raise PositionManagerError(f"Failed to check/close positions: {e}") from e
