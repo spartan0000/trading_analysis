@@ -1,14 +1,22 @@
 import pandas as pd
 from datetime import datetime, timedelta
-from edgar import get_filings
+from edgar import get_filings, set_identity
 import logging
 from pathlib import Path
 from pipeline.exceptions import FilingFetchError
 from pipeline.regime import get_current_regime
+from dotenv import load_dotenv
+import os
+load_dotenv()
 
 PATH = Path(__file__).parent.parent
 
 def get_new_filings():
+    user_agent = os.getenv('EDGAR_IDENTITY')
+    if not user_agent:
+        raise ValueError("EDGAR identity environment variable not set")
+    
+    set_identity(user_agent)
     """Fetch Form 4 filings from the last business day"""
     
     yesterday = get_last_business_day()

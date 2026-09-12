@@ -14,10 +14,20 @@ load_dotenv()
 PATH = Path(__file__).parent.parent
 LOG_DIR = Path(os.environ.get("LOG_DIR", PATH / "logs"))
 
+
+print(f"ALPACA KEY present: {bool(os.getenv('ALPACA_API_KEY'))}")
+print(f"ALPACA SECRET present: {bool(os.getenv('ALPACA_SECRET_KEY'))}")
+
 def get_client():
+    key = os.getenv("ALPACA_API_KEY")
+    secret = os.getenv("ALPACA_SECRET_KEY")
+
+    if not key or not secret:
+        raise ValueError(f"Alpaca credentials missing - KEY: {bool(key)}; SECRET: {bool(secret)}")
+    
     return TradingClient(
-        api_key=os.getenv("ALPACA_API_KEY"),
-        secret_key=os.getenv("ALPACA_SECRET_KEY"),
+        api_key=key,
+        secret_key=secret,
         paper=True
     )
 
