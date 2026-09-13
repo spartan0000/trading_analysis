@@ -67,7 +67,6 @@ def execute_trade(signal, regime):
     except Exception as e:
         logging.error(f"Order failed {signal['ticker']}: {e}")
         raise TradeExecutionError(f"Failed to execute trade for {signal['ticker']}: {e}") from e
-        return None
 
 def log_signal(entry):
     """Append signal to JSONL log"""

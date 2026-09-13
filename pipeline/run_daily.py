@@ -73,10 +73,12 @@ def run():
 
         for _, signal in filings.iterrows():
             if passes_trade_criteria(signal, regime, existing_positions):
-                result = execute_trade(signal, regime)
-                if result:
+                try:
+                    result = execute_trade(signal, regime)
                     existing_positions.add(signal['ticker'])
                     executed += 1
+                except TradeExecutionError as e:
+                    logging.error(f"Trade execution failed for {signal['ticker']}: {e}")
             else:
                 logging.info(f"Skipped {signal['ticker']} — criteria not met")
 
