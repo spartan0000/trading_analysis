@@ -84,11 +84,17 @@ def get_new_filings():
         #return pd.DataFrame()
 
 def get_last_business_day():
-    """Returns yesterday, or Friday if today is Monday"""
+    """Returns yesterday, or Friday if today is Saturday to Monday"""
     today = datetime.now()
-    if today.weekday() == 0:  # Monday
+    weekday = today.weekday()
+    
+    if weekday == 0:    # Monday → go back to Friday
         return (today - timedelta(days=3)).strftime('%Y-%m-%d')
-    else:
+    elif weekday == 5:  # Saturday → go back to Friday
+        return (today - timedelta(days=1)).strftime('%Y-%m-%d')
+    elif weekday == 6:  # Sunday → go back to Friday
+        return (today - timedelta(days=2)).strftime('%Y-%m-%d')
+    else:               # Tuesday-Friday → yesterday
         return (today - timedelta(days=1)).strftime('%Y-%m-%d')
 
 def add_derived_columns(df):

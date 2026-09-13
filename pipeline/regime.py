@@ -1,6 +1,8 @@
 import yfinance as yf
 from pipeline.exceptions import RegimeCheckError
 
+yf.set_tz_cache_location('/tmp/yfinance')
+
 def get_current_regime():
 
 
