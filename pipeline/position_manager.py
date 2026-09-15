@@ -8,13 +8,17 @@ from pipeline.exceptions import PositionManagerError
 import boto3
 import logging
 
-client = TradingClient(
-    api_key = os.getenv("ALPACA_API_KEY"),
-    secret_key = os.getenv("ALPACA_SECRET_KEY"),
-    paper = True
-)
+def get_client():
+
+    client = TradingClient(
+        api_key = os.getenv("ALPACA_API_KEY"),
+        secret_key = os.getenv("ALPACA_SECRET_KEY"),
+        paper = True
+    )
+    return client
 
 def get_entry_dates(lookback_days):
+    client = get_client()
     """Map each symbol to the fill time of its most recent buy, from Alpaca's
     order history. The strategy never adds to an open position, so the latest
     filled buy is that position's entry."""
@@ -56,6 +60,7 @@ Check Alpaca for full details.
         logging.error(f"Close alert failed: {e}")
 
 def check_close_positions(hold_days=90):
+    client = get_client()
     try:
         positions = client.get_all_positions()
         entry_dates = get_entry_dates(lookback_days=hold_days * 2)
