@@ -1,7 +1,14 @@
 import os
+import json
 import logging
+from datetime import datetime
+from pathlib import Path
 
 from typesafe_sdk import TypeSafeClient, AsyncTypeSafeClient, Choice, Noul, Score
+
+PATH = Path(__file__).parent.parent
+LOG_DIR = Path(os.environ.get("LOG_DIR", PATH / "logs"))
+SHADOW_LOG = LOG_DIR / "jev_shadow_log.jsonl"
 
 def evaluate_signal(signal, regime):
     """
@@ -100,3 +107,37 @@ def evaluate_signal(signal, regime):
             exc_info=True
         )
         return True, None
+
+
+def log_shadow_decision(signal, regime, hard_rules_passed, jev_should_trade=None, jev_response=None):
+    """Append one row per evaluated filing to an append-only JSONL log (never
+    truncated/overwritten, unlike daily.log) recording both the hard-rule
+    decision and what Jev would have decided, so Jev's would-be calls can be
+    walked forward against actual outcomes without Jev ever gating a trade
+    while it's running in shadow mode."""
+    entry = {
+        'date': datetime.now().isoformat(),
+        'ticker': signal['ticker'],
+        'company': signal.get('company'),
+        'regime': regime,
+        'purchase_value': float(signal['purchase_value']),
+        'filing_lag': int(signal['filing_lag']),
+        'hard_rules_passed': bool(hard_rules_passed),
+        'jev_evaluated': jev_response is not None,
+        'jev_should_trade': jev_should_trade,
+    }
+
+    if jev_response is not None:
+        entry.update({
+            'jev_signal_quality': jev_response.choices["signal_quality"].choice,
+            'jev_signal_confidence': jev_response.choices["signal_quality"].confidence,
+            'jev_signal_probabilities': jev_response.choices["signal_quality"].probabilities,
+            'jev_genuine_conviction': jev_response.nouls["genuine_conviction"].noul,
+            'jev_regime_appropriate': jev_response.nouls["regime_appropriate"].noul,
+            'jev_alpha_potential': jev_response.scores["alpha_potential"].score,
+            'jev_matches_profile': jev_response.nouls["matches_target_profile"].noul,
+        })
+
+    LOG_DIR.mkdir(parents=True, exist_ok=True)
+    with open(SHADOW_LOG, 'a') as f:
+        f.write(json.dumps(entry) + '\n')
