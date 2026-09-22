@@ -21,7 +21,9 @@ def apply_analysis_filters(df, min_value=MIN_ANALYSIS_VALUE, max_value=MAX_ANALY
         (df['EquitySwap'] == False)
     ].copy()
 
-# Used by trading pipeline — evaluate a single new signal
+# Used by trading pipeline — evaluate a single new signal against the hard rules only.
+# The soft-judgement (Jev) layer is a separate step run by the caller once these pass,
+# since it needs the full response for logging and shouldn't be evaluated twice.
 def passes_trade_criteria(signal, regime, existing_positions):
     return all([
         signal['purchase_value'] >= 500000,
